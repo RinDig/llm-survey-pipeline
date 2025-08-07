@@ -268,28 +268,44 @@ def show_configure_page():
         with col1:
             # Model selection
             st.markdown("#### Models")
-            available_models = []
-            if st.session_state.api_keys.get("OPENAI_API_KEY"):
-                available_models.append("OpenAI")
-            if st.session_state.api_keys.get("ANTHROPIC_API_KEY"):
-                available_models.append("Claude")
-            if st.session_state.api_keys.get("LLAMA_API_KEY"):
-                available_models.append("Llama")
-            if st.session_state.api_keys.get("XAI_API_KEY"):
-                available_models.append("Grok")
-            if st.session_state.api_keys.get("DEEPSEEK_API_KEY"):
-                available_models.append("DeepSeek")
             
-            if not available_models:
-                st.warning("No API keys configured. Please setup API keys first.")
-                st.info("👈 **Please select '🔑 Setup' from the navigation menu to add API keys**")
+            # Check if any API keys are configured
+            if not st.session_state.api_keys:
+                st.warning("⚠️ No API keys configured yet!")
+                st.info("👈 **Please select '🔑 Setup' from the navigation menu to add your API keys first**")
+                st.caption("You need to enter API keys to see available models here")
             else:
-                selected_models = st.multiselect(
-                    "Select models to test",
-                    available_models,
-                    default=available_models[:2]
-                )
-                st.session_state.survey_config['models'] = selected_models
+                # Build list of available models based on configured keys
+                available_models = []
+                configured_keys = []
+                
+                if st.session_state.api_keys.get("OPENAI_API_KEY"):
+                    available_models.append("OpenAI")
+                    configured_keys.append("OpenAI")
+                if st.session_state.api_keys.get("ANTHROPIC_API_KEY"):
+                    available_models.append("Claude")
+                    configured_keys.append("Anthropic")
+                if st.session_state.api_keys.get("LLAMA_API_KEY"):
+                    available_models.append("Llama")
+                    configured_keys.append("Llama")
+                if st.session_state.api_keys.get("XAI_API_KEY"):
+                    available_models.append("Grok")
+                    configured_keys.append("X.AI/Grok")
+                if st.session_state.api_keys.get("DEEPSEEK_API_KEY"):
+                    available_models.append("DeepSeek")
+                    configured_keys.append("DeepSeek")
+                
+                if available_models:
+                    st.caption(f"✅ API keys found for: {', '.join(configured_keys)}")
+                    selected_models = st.multiselect(
+                        "Select models to test",
+                        available_models,
+                        default=available_models[:2] if len(available_models) >= 2 else available_models
+                    )
+                    st.session_state.survey_config['models'] = selected_models
+                else:
+                    st.error("No valid API keys found. Please check your API keys in Setup.")
+                    st.info("👈 **Please select '🔑 Setup' from the navigation menu**")
         
         with col2:
             # Scale selection

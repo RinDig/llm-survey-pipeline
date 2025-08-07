@@ -88,12 +88,31 @@ def main():
     # Sidebar navigation
     with st.sidebar:
         st.markdown("## 📍 Navigation")
+        st.caption("*Click any option below to navigate*")
         
         page = st.radio(
             "Select Page",
             ["🏠 Home", "🔑 Setup", "📝 Configure Survey", "🚀 Execute", "📊 Results", "🔍 Data Explorer", "📚 Documentation"],
             label_visibility="collapsed"
         )
+        
+        # Show workflow progress
+        st.markdown("---")
+        st.markdown("### 📋 Workflow Status")
+        
+        # Check progress
+        has_keys = bool(st.session_state.api_keys)
+        has_config = bool(st.session_state.survey_config.get('models')) if 'survey_config' in st.session_state else False
+        
+        if has_keys:
+            st.success("✅ API Keys configured")
+        else:
+            st.info("⏳ API Keys needed")
+            
+        if has_config:
+            st.success("✅ Survey configured")
+        else:
+            st.info("⏳ Survey configuration needed")
         
         st.markdown("---")
         st.markdown("### 📈 Quick Stats")
@@ -129,6 +148,17 @@ def show_home_page():
     
     with col1:
         st.markdown("## Welcome to LLM Survey Pipeline")
+        
+        # Add a prominent callout box
+        st.markdown("""
+        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 10px; border-left: 4px solid #667eea;'>
+            <h4>👈 Use the Navigation Menu to Get Started</h4>
+            <p>All features are accessible through the sidebar navigation on the left.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("")  # Add spacing
+        
         st.markdown("""
         This platform enables researchers to conduct psychological and political surveys with various 
         Large Language Models (LLMs) under different prompting conditions.
@@ -141,17 +171,46 @@ def show_home_page():
         - **Secure**: API keys never leave your browser session
         """)
         
-        st.markdown("### 🚀 Quick Start")
-        st.markdown("""
-        1. **Setup** → Add your API keys
-        2. **Configure** → Select models, scales, and prompts
-        3. **Execute** → Run the survey with progress tracking
-        4. **Analyze** → Explore results with advanced filtering
-        """)
+        st.markdown("### 🚀 Getting Started Guide")
         
-        if st.button("Get Started →", type="primary", use_container_width=True):
-            st.session_state.current_page = "🔑 Setup"
-            st.rerun()
+        # Create a visual workflow
+        col_1, col_2, col_3, col_4 = st.columns(4)
+        
+        with col_1:
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem; background: #e3f2fd; border-radius: 10px; height: 120px;'>
+                <h3>1️⃣</h3>
+                <b>Setup</b><br>
+                Add API keys
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_2:
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem; background: #e8f5e9; border-radius: 10px; height: 120px;'>
+                <h3>2️⃣</h3>
+                <b>Configure</b><br>
+                Select options
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_3:
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem; background: #fff3e0; border-radius: 10px; height: 120px;'>
+                <h3>3️⃣</h3>
+                <b>Execute</b><br>
+                Run survey
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_4:
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem; background: #f3e5f5; border-radius: 10px; height: 120px;'>
+                <h3>4️⃣</h3>
+                <b>Analyze</b><br>
+                View results
+            </div>
+            """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("### 📊 Platform Statistics")
@@ -193,9 +252,7 @@ def show_setup_page():
         st.session_state.api_keys = api_keys
         st.success(f"✅ {len(api_keys)} API keys configured")
         
-        if st.button("Continue to Survey Configuration →", type="primary"):
-            st.session_state.current_page = "📝 Configure Survey"
-            st.rerun()
+        st.info("👈 **Next step: Select '📝 Configure Survey' from the navigation menu**")
 
 def show_configure_page():
     """Configuration page for survey setup"""
@@ -225,9 +282,7 @@ def show_configure_page():
             
             if not available_models:
                 st.warning("No API keys configured. Please setup API keys first.")
-                if st.button("Go to Setup"):
-                    st.session_state.current_page = "🔑 Setup"
-                    st.rerun()
+                st.info("👈 **Please select '🔑 Setup' from the navigation menu to add API keys**")
             else:
                 selected_models = st.multiselect(
                     "Select models to test",
@@ -325,12 +380,11 @@ def show_configure_page():
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col2:
-        if st.button("🚀 Proceed to Execution", type="primary", use_container_width=True):
-            if validate_configuration():
-                st.session_state.current_page = "🚀 Execute"
-                st.rerun()
-            else:
-                st.error("Please complete the configuration")
+        if validate_configuration():
+            st.success("✅ Configuration complete!")
+            st.info("👈 **Next step: Select '🚀 Execute' from the navigation menu to run the survey**")
+        else:
+            st.warning("⚠️ Please complete all configuration fields above")
 
 def show_execute_page():
     """Execution page for running surveys"""
@@ -348,9 +402,7 @@ def show_results_page():
     
     if not recent_runs:
         st.info("No survey results available yet. Run a survey first!")
-        if st.button("Run a Survey"):
-            st.session_state.current_page = "🚀 Execute"
-            st.rerun()
+        st.info("👈 **To run a survey, select '🚀 Execute' from the navigation menu**")
         return
     
     # Run selector

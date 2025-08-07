@@ -178,37 +178,49 @@ class DataExplorer:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            # Model filter
-            available_models = data['model'].unique().tolist()
-            selected_models = st.multiselect(
-                "Filter by Models:",
-                options=available_models,
-                default=st.session_state.filter_settings['models'],
-                help="Select specific models to include in analysis"
-            )
-            st.session_state.filter_settings['models'] = selected_models
+            # Model filter - check which column name exists
+            model_col = 'model_name' if 'model_name' in data.columns else 'model' if 'model' in data.columns else None
+            if model_col:
+                available_models = data[model_col].unique().tolist()
+                selected_models = st.multiselect(
+                    "Filter by Models:",
+                    options=available_models,
+                    default=st.session_state.filter_settings['models'],
+                    help="Select specific models to include in analysis"
+                )
+                st.session_state.filter_settings['models'] = selected_models
+            else:
+                st.warning("Model column not found in data")
             
         with col2:
-            # Scale filter
-            available_scales = data['scale'].unique().tolist()
-            selected_scales = st.multiselect(
-                "Filter by Scales:",
-                options=available_scales,
-                default=st.session_state.filter_settings['scales'],
-                help="Select specific scales to analyze"
-            )
-            st.session_state.filter_settings['scales'] = selected_scales
+            # Scale filter - check which column name exists
+            scale_col = 'scale_name' if 'scale_name' in data.columns else 'scale' if 'scale' in data.columns else None
+            if scale_col:
+                available_scales = data[scale_col].unique().tolist()
+                selected_scales = st.multiselect(
+                    "Filter by Scales:",
+                    options=available_scales,
+                    default=st.session_state.filter_settings['scales'],
+                    help="Select specific scales to analyze"
+                )
+                st.session_state.filter_settings['scales'] = selected_scales
+            else:
+                st.warning("Scale column not found in data")
             
         with col3:
-            # Prompt filter
-            available_prompts = data['prompt'].unique().tolist()
-            selected_prompts = st.multiselect(
-                "Filter by Prompt Styles:",
-                options=available_prompts,
-                default=st.session_state.filter_settings['prompts'],
-                help="Select specific prompt styles"
-            )
-            st.session_state.filter_settings['prompts'] = selected_prompts
+            # Prompt filter - check which column name exists
+            prompt_col = 'prompt_style' if 'prompt_style' in data.columns else 'prompt' if 'prompt' in data.columns else None
+            if prompt_col:
+                available_prompts = data[prompt_col].unique().tolist()
+                selected_prompts = st.multiselect(
+                    "Filter by Prompt Styles:",
+                    options=available_prompts,
+                    default=st.session_state.filter_settings['prompts'],
+                    help="Select specific prompt styles"
+                )
+                st.session_state.filter_settings['prompts'] = selected_prompts
+            else:
+                st.warning("Prompt column not found in data")
             
         # Advanced filters
         st.subheader("Advanced Filters")
@@ -413,7 +425,7 @@ class DataExplorer:
         selected_groupby = st.multiselect(
             "Group statistics by:",
             options=available_groupby,
-            default=['model'] if 'model' in available_groupby else [],
+            default=['model_name'] if 'model_name' in available_groupby else ['model'] if 'model' in available_groupby else [],
             help="Calculate statistics for each group"
         )
         
@@ -590,13 +602,21 @@ class DataExplorer:
         )
         
         if metric == "Mean Score":
+            # Determine correct column names
+            model_col = 'model_name' if 'model_name' in data.columns else 'model'
+            score_col = 'scored_value' if 'scored_value' in data.columns else 'numeric_score' if 'numeric_score' in data.columns else 'score'
+            
             # Calculate mean scores by model
-            model_scores = data.groupby('model')['score'].agg(['mean', 'std', 'count']).reset_index()
+            if model_col in data.columns and score_col in data.columns:
+                model_scores = data.groupby(model_col)[score_col].agg(['mean', 'std', 'count']).reset_index()
+            else:
+                st.warning("Required columns not found for visualization")
+                return
             
             # Create bar chart with error bars
             fig = go.Figure()
             fig.add_trace(go.Bar(
-                x=model_scores['model'],
+                x=model_scores[model_col],
                 y=model_scores['mean'],
                 error_y=dict(
                     type='data',
@@ -1794,8 +1814,12 @@ class DataExplorer:
         # Calculate consistency metrics by model
         consistency_metrics = []
         
-        for model in data['model'].unique():
-            model_data = data[data['model'] == model]['score']
+        # Determine correct column names
+        model_col = 'model_name' if 'model_name' in data.columns else 'model'
+        score_col = 'scored_value' if 'scored_value' in data.columns else 'numeric_score' if 'numeric_score' in data.columns else 'score'
+        
+        for model in data[model_col].unique():
+            model_data = data[data[model_col] == model][score_col] if score_col in data.columns else []
             
             consistency_metrics.append({
                 'Model': model,
@@ -2059,17 +2083,20 @@ class DataExplorer:
         """Apply all filters to the data"""
         filtered = data.copy()
         
-        # Model filter
-        if st.session_state.filter_settings['models']:
-            filtered = filtered[filtered['model'].isin(st.session_state.filter_settings['models'])]
+        # Model filter - check which column name exists
+        model_col = 'model_name' if 'model_name' in filtered.columns else 'model' if 'model' in filtered.columns else None
+        if model_col and st.session_state.filter_settings['models']:
+            filtered = filtered[filtered[model_col].isin(st.session_state.filter_settings['models'])]
             
-        # Scale filter
-        if st.session_state.filter_settings['scales']:
-            filtered = filtered[filtered['scale'].isin(st.session_state.filter_settings['scales'])]
+        # Scale filter - check which column name exists
+        scale_col = 'scale_name' if 'scale_name' in filtered.columns else 'scale' if 'scale' in filtered.columns else None
+        if scale_col and st.session_state.filter_settings['scales']:
+            filtered = filtered[filtered[scale_col].isin(st.session_state.filter_settings['scales'])]
             
-        # Prompt filter
-        if st.session_state.filter_settings['prompts']:
-            filtered = filtered[filtered['prompt'].isin(st.session_state.filter_settings['prompts'])]
+        # Prompt filter - check which column name exists
+        prompt_col = 'prompt_style' if 'prompt_style' in filtered.columns else 'prompt' if 'prompt' in filtered.columns else None
+        if prompt_col and st.session_state.filter_settings['prompts']:
+            filtered = filtered[filtered[prompt_col].isin(st.session_state.filter_settings['prompts'])]
             
         # Response type filter
         response_type = st.session_state.filter_settings['response_type']

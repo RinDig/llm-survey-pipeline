@@ -266,7 +266,9 @@ class APIKeyManager:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔄 Test All Keys", use_container_width=True, type="primary"):
+            # Make the Test All Keys button more prominent
+            if st.button("🔄 Test All Keys", use_container_width=True, type="primary", 
+                        help="Validate all provided API keys at once - Recommended!"):
                 return "test_all"
         
         with col2:
@@ -306,6 +308,15 @@ class APIKeyManager:
         st.title("🔐 API Key Management")
         st.markdown("Configure your LLM provider API keys securely. Keys are only stored in your browser session.")
         
+        # Quick instructions
+        with st.expander("📖 How to add API keys", expanded=True):
+            st.markdown("""
+            1. **Enter your API keys** in the fields below for each provider you want to use
+            2. **Click 'Test All Keys'** button to validate all keys at once (recommended)
+            3. **Check the results** - validated keys will show ✅
+            4. **Navigate to Configure Survey** to select from available models
+            """)
+        
         # Security notice
         self.render_security_notice()
         
@@ -338,6 +349,7 @@ class APIKeyManager:
         
         # Bulk actions
         st.subheader("Bulk Actions")
+        st.info("💡 **Tip**: Use 'Test All Keys' to validate multiple providers at once for best results!")
         action = self.render_bulk_actions()
         
         # Handle test requests

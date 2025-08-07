@@ -412,9 +412,182 @@ def show_execute_page():
         st.info("👈 **Please select '📝 Configure Survey' from the navigation menu to set up your survey first**")
         return
     
-    # Use the integrated executor which handles actual execution
-    from frontend.components.survey_executor_integration import render_integrated_executor
-    render_integrated_executor()
+    # Import necessary components
+    from backend.config.scales import all_questions
+    from main import SurveyPipeline
+    import asyncio
+    import pandas as pd
+    from datetime import datetime
+    
+    # Initialize execution state if needed
+    if 'execution_state' not in st.session_state:
+        st.session_state.execution_state = {
+            'status': 'idle',
+            'progress': 0,
+            'total_tasks': 0,
+            'completed_tasks': 0,
+            'results': None,
+            'start_time': None,
+            'end_time': None
+        }
+    
+    # Get configuration
+    config = st.session_state.survey_config
+    
+    # Show configuration summary
+    with st.expander("📋 Survey Configuration", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.write("**Models:**")
+            for model in config.get('models', []):
+                st.write(f"• {model}")
+        with col2:
+            st.write("**Scales:**")
+            for scale in config.get('scales', []):
+                st.write(f"• {scale}")
+        with col3:
+            st.write("**Settings:**")
+            st.write(f"• Runs: {config.get('num_runs', 1)}")
+            st.write(f"• Temperature: {config.get('temperature', 0.0)}")
+    
+    # Get prompts (use minimal as default if none selected)
+    prompts = list(st.session_state.selected_prompts.keys()) if st.session_state.get('selected_prompts') else ['minimal']
+    
+    # Calculate total tasks
+    num_questions = len([q for q in all_questions if q["scale_name"] in config.get('scales', [])])
+    total_tasks = num_questions * len(config.get('models', [])) * len(prompts) * config.get('num_runs', 1)
+    
+    # Show task count
+    st.info(f"📊 Total tasks to execute: **{total_tasks}** (Questions: {num_questions} × Models: {len(config.get('models', []))} × Prompts: {len(prompts)} × Runs: {config.get('num_runs', 1)})")
+    
+    # Execution controls
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        if st.button("🚀 Start Survey", type="primary", use_container_width=True,
+                    disabled=st.session_state.execution_state['status'] == 'running'):
+            st.session_state.execution_state['status'] = 'running'
+            st.session_state.execution_state['start_time'] = datetime.now()
+            st.session_state.execution_state['total_tasks'] = total_tasks
+            st.rerun()
+    
+    with col2:
+        if st.button("🔄 Reset", use_container_width=True):
+            st.session_state.execution_state = {
+                'status': 'idle',
+                'progress': 0,
+                'total_tasks': 0,
+                'completed_tasks': 0,
+                'results': None,
+                'start_time': None,
+                'end_time': None
+            }
+            st.rerun()
+    
+    # Handle execution
+    if st.session_state.execution_state['status'] == 'running':
+        st.markdown("---")
+        st.subheader("🔄 Executing Survey...")
+        
+        # Create pipeline
+        pipeline = SurveyPipeline(
+            scales_to_run=config.get('scales', []),
+            prompt_styles_to_run=prompts,
+            models_to_run=config.get('models', []),
+            num_calls_test=config.get('num_runs', 1),
+            temperature=config.get('temperature', 0.0)
+        )
+        
+        # Show progress
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        try:
+            # Run the survey
+            status_text.text("Building tasks...")
+            tasks = pipeline.build_tasks()
+            
+            if len(tasks) == 0:
+                st.error("No tasks to execute! Check your configuration.")
+                st.session_state.execution_state['status'] = 'idle'
+            else:
+                status_text.text(f"Executing {len(tasks)} tasks...")
+                
+                # Run the async survey
+                try:
+                    results_df = asyncio.run(pipeline.run_survey())
+                except Exception as run_error:
+                    st.error(f"❌ Pipeline execution failed: {str(run_error)}")
+                    st.exception(run_error)
+                    st.session_state.execution_state['status'] = 'error'
+                    return
+                
+                # Update state
+                st.session_state.execution_state['results'] = results_df
+                st.session_state.execution_state['status'] = 'completed'
+                st.session_state.execution_state['completed_tasks'] = len(results_df)
+                st.session_state.execution_state['end_time'] = datetime.now()
+                
+                progress_bar.progress(100)
+                status_text.text("✅ Survey complete!")
+                
+                # Save results
+                from backend.storage.json_handler import StorageManager
+                storage = StorageManager()
+                run_id = storage.save_from_pipeline(results_df, config)
+                
+                st.success(f"✅ Survey completed! {len(results_df)} responses collected. Run ID: {run_id}")
+                st.rerun()
+                
+        except Exception as e:
+            st.error(f"❌ Execution failed: {str(e)}")
+            st.exception(e)
+            st.session_state.execution_state['status'] = 'error'
+    
+    elif st.session_state.execution_state['status'] == 'completed':
+        st.markdown("---")
+        st.success("✅ Survey completed successfully!")
+        
+        results = st.session_state.execution_state.get('results')
+        if results is not None and not results.empty:
+            # Show summary
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Responses", len(results))
+            with col2:
+                valid = results['numeric_score'].notna().sum()
+                st.metric("Valid Responses", valid)
+            with col3:
+                response_rate = (valid / len(results) * 100) if len(results) > 0 else 0
+                st.metric("Response Rate", f"{response_rate:.1f}%")
+            
+            # Show results preview
+            with st.expander("📊 Results Preview"):
+                st.dataframe(results.head(20))
+            
+            # Download options
+            st.markdown("### 💾 Download Results")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                csv = results.to_csv(index=False)
+                st.download_button(
+                    "📥 Download CSV",
+                    csv,
+                    "survey_results.csv",
+                    "text/csv",
+                    use_container_width=True
+                )
+            
+            with col2:
+                json_str = results.to_json(orient='records', indent=2)
+                st.download_button(
+                    "📥 Download JSON",
+                    json_str,
+                    "survey_results.json",
+                    "application/json",
+                    use_container_width=True
+                )
 
 def show_results_page():
     """Results page for viewing completed surveys"""

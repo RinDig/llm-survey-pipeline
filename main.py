@@ -74,7 +74,7 @@ class SurveyPipeline:
         df_results = pd.DataFrame(results)
         
         # Apply reverse scoring
-        df_results["scored_value"] = df_results.apply(apply_reverse_score, axis=1)
+        df_results["scored_value"] = df_results.apply(lambda row: apply_reverse_score(row), axis=1)
         
         # Save results
         output_path = self.output_dir / "unified_responses.csv"

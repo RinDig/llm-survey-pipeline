@@ -3,20 +3,25 @@
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://llm-survey-pipeline.streamlit.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+**Live App**: [https://llm-survey-pipeline.streamlit.app](https://llm-survey-pipeline.streamlit.app)
+
 ## Overview
 
 A comprehensive research platform for conducting psychological and political surveys with Large Language Models (LLMs). This tool systematically tests model responses across established psychological scales under different prompting conditions, providing researchers with powerful tools to analyze potential biases, personality traits, or cognitive styles embedded in these models.
 
 ![WhatsApp Image 2025-06-10 at 17 42 25_797f3260](https://github.com/user-attachments/assets/c79330df-9e96-4f25-a396-8135dcce1f2f)
 
-## Features
+## ✨ Key Features
 
-- **Modular Architecture**: Clean separation of concerns with organized modules
-- **Web Dashboard**: Interactive Streamlit dashboard for easy configuration and visualization
-- **CLI Interface**: Command-line interface for automated runs
-- **Scalable Design**: Easy to add new models, scales, or prompt templates
-- **Real-time Progress**: Visual progress tracking during survey execution
-- **Advanced Analytics**: Built-in analysis and visualization tools
+- **🌐 Web-Based Interface**: No installation required - use directly in your browser
+- **🔐 Secure API Key Management**: Keys stored only in browser session, never persisted to servers
+- **🤖 Multi-Model Support**: Test OpenAI, Claude, Llama, Grok, and DeepSeek simultaneously
+- **📊 Built-in Psychological Scales**: RWA, LWA, MFQ, and NFC scales ready to use
+- **✏️ Custom Prompt Builder**: Create and test your own prompting personas with live preview
+- **📈 Real-time Progress Tracking**: Monitor execution with detailed progress updates
+- **💾 Flexible Data Export**: Download results in CSV, JSON, or Excel formats
+- **🔍 Advanced Data Explorer**: Filter, visualize, and analyze results interactively
+- **💰 Cost Tracking**: Automatic token usage and cost estimation per model
 
 ## Directory Structure
 
@@ -43,44 +48,67 @@ llm_survey_pipeline/
 └── requirements.txt
 ```
 
-## Installation
+## 🚀 Quick Start
 
-1. Clone or copy the `llm_survey_pipeline` directory
+### Option 1: Use the Live Web App (Recommended)
+
+1. Visit [https://llm-survey-pipeline.streamlit.app](https://llm-survey-pipeline.streamlit.app)
+2. Enter your API keys in the Setup page
+3. Configure your survey parameters
+4. Execute and download results
+
+No installation required!
+
+### Option 2: Local Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/RinDig/llm-survey-pipeline.git
+   cd llm-survey-pipeline
+   ```
+
 2. Create a virtual environment:
    ```bash
-   cd llm_survey_pipeline
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
+
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. Create a `.env` file in the root directory:
+
+4. Run the application:
+   ```bash
+   streamlit run app.py
    ```
-   OPENAI_API_KEY="your-openai-key"
-   ANTHROPIC_API_KEY="your-anthropic-key"
-   LLAMA_API_KEY="your-llamaapi-key"
-   XAI_API_KEY="your-grok-key"
-   DEEPSEEK_API_KEY="your-deepseek-key"
-   ```
+
+5. Open your browser to `http://localhost:8501`
 
 ## Usage
 
-### Web Dashboard
+### Using the Web Interface
 
-Run the dashboard for an interactive experience:
+1. **🔑 Setup API Keys**:
+   - Navigate to the "Setup" page
+   - Enter API keys for the models you want to test
+   - Use "Test All Keys" to validate all at once
 
-```bash
-streamlit run dashboard/app.py
-```
+2. **📝 Configure Survey**:
+   - Select models to test
+   - Choose psychological scales
+   - Pick or create custom prompt styles
+   - Set temperature and number of runs
 
-The dashboard provides:
-- Interactive model, scale, and prompt selection
-- Real-time progress tracking
-- Visual analytics and charts
-- Data export functionality
-- Configuration viewing
+3. **🚀 Execute Survey**:
+   - Review configuration and cost estimates
+   - Click "Start Survey" to begin
+   - Monitor real-time progress
+
+4. **📊 Analyze Results**:
+   - View completed surveys in the Results page
+   - Use Data Explorer for advanced filtering
+   - Export in your preferred format
 
 ### Command Line Interface
 
@@ -133,22 +161,80 @@ Options:
    "new_style": "Your prompt template here..."
    ```
 
-## Output Files
+## 🔑 Getting API Keys
+
+### OpenAI
+- Visit [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Create a new API key
+- Requires payment method on file
+
+### Anthropic Claude  
+- Visit [https://console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+- Generate an API key
+- Requires approved account with credits
+
+### X.AI (Grok)
+- Visit [https://x.ai/api](https://x.ai/api)
+- Request API access
+- Currently in beta with limited availability
+
+### Llama
+- Visit [https://www.llama-api.com](https://www.llama-api.com)
+- Sign up for free tier or paid plan
+- Generate API token
+
+### DeepSeek
+- Visit [https://platform.deepseek.com](https://platform.deepseek.com)
+- Create account and add credits
+- Generate API key
+
+## 📊 Psychological Scales
+
+- **RWA (Right-Wing Authoritarianism)**: Measures authoritarian personality traits
+- **LWA (Left-Wing Authoritarianism)**: Assesses left-leaning authoritarian traits
+- **MFQ (Moral Foundations Questionnaire)**: Evaluates moral reasoning across 5 foundations
+- **NFC (Need for Closure)**: Measures preference for order and decisiveness
+
+## 📁 Output Files
 
 - `unified_responses.csv`: All survey responses with scores
 - `refusal_responses.csv`: Responses where models refused/failed
 - `mfq_foundation_scores.csv`: MFQ foundation analysis (if MFQ scale is run)
 
-## API Rate Limits
+## ⚡ Performance & Rate Limits
 
 The system includes intelligent rate limiting:
-- OpenAI/Grok: 3 concurrent calls, 1 second between chunks
-- Anthropic: 5 concurrent calls, 0.5 seconds between chunks
-- Llama/DeepSeek: 10 concurrent calls, 0.2 seconds between chunks
+- **OpenAI/Grok**: 3 concurrent calls, 1 second between chunks
+- **Anthropic**: 5 concurrent calls, 0.5 seconds between chunks
+- **Llama/DeepSeek**: 10 concurrent calls, 0.2 seconds between chunks
 
-## Notes
+## 🔒 Security & Privacy
 
-- All scale templates and prompt templates are preserved exactly as in the original notebook
-- The modular structure makes it easy to extend and maintain
-- The dashboard provides a user-friendly interface while maintaining all original functionality
-- Progress bars and real-time updates keep you informed during long runs
+- API keys are stored only in your browser session
+- No data is sent to external servers (except LLM API calls)
+- All processing happens client-side or on your local machine
+- Survey results remain private to your session
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Streamlit](https://streamlit.io)
+- Psychological scales adapted from validated research instruments
+- Thanks to all LLM providers for API access
+
+## 📧 Support
+
+For issues, questions, or suggestions:
+- Open an issue on [GitHub](https://github.com/RinDig/llm-survey-pipeline/issues)
+- Check existing issues for solutions
+
+---
+
+**Note**: Ensure you comply with each LLM provider's terms of service and have appropriate permissions for research use.

@@ -430,7 +430,12 @@ def show_execute_page():
             'completed_tasks': 0,
             'results': None,
             'start_time': None,
-            'end_time': None
+            'end_time': None,
+            'current_cost': 0.0,
+            'current_model': None,
+            'current_scale': None,
+            'current_prompt': None,
+            'model_progress': {}
         }
     
     # Get configuration
@@ -459,19 +464,80 @@ def show_execute_page():
     num_questions = len([q for q in all_questions if q["scale_name"] in config.get('scales', [])])
     total_tasks = num_questions * len(config.get('models', [])) * len(prompts) * config.get('num_runs', 1)
     
-    # Show task count
-    st.info(f"📊 Total tasks to execute: **{total_tasks}** (Questions: {num_questions} × Models: {len(config.get('models', []))} × Prompts: {len(prompts)} × Runs: {config.get('num_runs', 1)})")
+    # Calculate cost estimates
+    def estimate_costs(models, total_tasks):
+        """Estimate min and max costs for the survey"""
+        COST_PER_1K_TOKENS = {
+            "OpenAI": {"input": 0.003, "output": 0.006},
+            "Claude": {"input": 0.003, "output": 0.015},
+            "Llama": {"input": 0.0005, "output": 0.0015},
+            "Grok": {"input": 0.002, "output": 0.004},
+            "DeepSeek": {"input": 0.0004, "output": 0.0012}
+        }
+        
+        avg_tokens_per_task = 250  # Approximate total tokens per task
+        min_cost = 0
+        max_cost = 0
+        
+        for model in models:
+            if model in COST_PER_1K_TOKENS:
+                costs = COST_PER_1K_TOKENS[model]
+                # Assume 60% input, 40% output
+                task_cost = (avg_tokens_per_task * 0.6 / 1000 * costs["input"] + 
+                           avg_tokens_per_task * 0.4 / 1000 * costs["output"])
+                model_tasks = total_tasks / len(models) if models else 0
+                min_cost += model_tasks * task_cost * 0.8
+                max_cost += model_tasks * task_cost * 1.5
+        
+        return min_cost, max_cost
+    
+    min_cost, max_cost = estimate_costs(config.get('models', []), total_tasks)
+    
+    # Show task count and estimates
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("📊 Total Tasks", f"{total_tasks:,}")
+        st.caption(f"{num_questions} questions × {len(config.get('models', []))} models × {len(prompts)} prompts × {config.get('num_runs', 1)} runs")
+    with col2:
+        st.metric("💰 Estimated Cost", f"${min_cost:.2f} - ${max_cost:.2f}")
+        st.caption("Based on average token usage")
+    with col3:
+        # Estimate time (2 seconds per task average)
+        est_time_seconds = total_tasks * 2
+        if est_time_seconds < 60:
+            time_str = f"{est_time_seconds} seconds"
+        elif est_time_seconds < 3600:
+            time_str = f"{est_time_seconds // 60} minutes"
+        else:
+            time_str = f"{est_time_seconds / 3600:.1f} hours"
+        st.metric("⏱️ Estimated Time", time_str)
+        st.caption("Including rate limiting")
+    
+    # Show warnings if needed
+    if max_cost > 10:
+        st.warning(f"⚠️ **Cost Warning**: Estimated cost is ${min_cost:.2f} - ${max_cost:.2f}. Please ensure you have sufficient credits.")
+    
+    if total_tasks > 500:
+        st.info(f"ℹ️ **Large Survey**: This will process {total_tasks:,} tasks. Consider reducing the scope if you want faster results.")
     
     # Execution controls
     col1, col2, col3 = st.columns([2, 1, 1])
     
     with col1:
-        if st.button("🚀 Start Survey", type="primary", use_container_width=True,
-                    disabled=st.session_state.execution_state['status'] == 'running'):
-            st.session_state.execution_state['status'] = 'running'
-            st.session_state.execution_state['start_time'] = datetime.now()
-            st.session_state.execution_state['total_tasks'] = total_tasks
-            st.rerun()
+        if st.session_state.execution_state['status'] == 'running':
+            if st.button("⏸️ Pause Execution", type="secondary", use_container_width=True):
+                st.session_state.execution_state['status'] = 'paused'
+                st.rerun()
+        else:
+            if st.button("🚀 Start Survey", type="primary", use_container_width=True,
+                        disabled=st.session_state.execution_state['status'] == 'running'):
+                st.session_state.execution_state['status'] = 'running'
+                st.session_state.execution_state['start_time'] = datetime.now()
+                st.session_state.execution_state['total_tasks'] = total_tasks
+                st.session_state.execution_state['completed_tasks'] = 0
+                st.session_state.execution_state['current_cost'] = 0.0
+                st.session_state.execution_state['model_progress'] = {}
+                st.rerun()
     
     with col2:
         if st.button("🔄 Reset", use_container_width=True):
@@ -482,14 +548,75 @@ def show_execute_page():
                 'completed_tasks': 0,
                 'results': None,
                 'start_time': None,
-                'end_time': None
+                'end_time': None,
+                'current_cost': 0.0,
+                'current_model': None,
+                'current_scale': None,
+                'current_prompt': None,
+                'model_progress': {}
             }
             st.rerun()
     
     # Handle execution
     if st.session_state.execution_state['status'] == 'running':
         st.markdown("---")
-        st.subheader("🔄 Executing Survey...")
+        st.subheader("🔄 Survey Execution in Progress")
+        
+        # Create a container for live updates
+        progress_container = st.container()
+        
+        with progress_container:
+            # Overall progress bar with percentage
+            if st.session_state.execution_state.get('completed_tasks', 0) > 0:
+                progress_pct = st.session_state.execution_state['completed_tasks'] / st.session_state.execution_state['total_tasks']
+                st.progress(progress_pct, text=f"Progress: {st.session_state.execution_state['completed_tasks']}/{st.session_state.execution_state['total_tasks']} tasks ({progress_pct*100:.1f}%)")
+                
+                # Live metrics
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    elapsed = datetime.now() - st.session_state.execution_state['start_time']
+                    st.metric("⏱️ Elapsed", f"{elapsed.seconds // 60}m {elapsed.seconds % 60}s")
+                
+                with col2:
+                    st.metric("✅ Completed", f"{st.session_state.execution_state['completed_tasks']:,}")
+                
+                with col3:
+                    # Estimate remaining time
+                    if st.session_state.execution_state['completed_tasks'] > 0:
+                        avg_time_per_task = elapsed.total_seconds() / st.session_state.execution_state['completed_tasks']
+                        remaining_tasks = st.session_state.execution_state['total_tasks'] - st.session_state.execution_state['completed_tasks']
+                        est_remaining = avg_time_per_task * remaining_tasks
+                        if est_remaining < 60:
+                            remaining_str = f"{int(est_remaining)}s"
+                        else:
+                            remaining_str = f"{int(est_remaining // 60)}m"
+                        st.metric("⏳ Est. Remaining", remaining_str)
+                    else:
+                        st.metric("⏳ Est. Remaining", "Calculating...")
+                
+                with col4:
+                    st.metric("💰 Current Cost", f"${st.session_state.execution_state.get('current_cost', 0):.3f}")
+                
+                # Current task being processed
+                if st.session_state.execution_state.get('current_model'):
+                    st.info(f"🤖 Processing: **{st.session_state.execution_state['current_model']}** | "
+                           f"📊 Scale: **{st.session_state.execution_state.get('current_scale', 'N/A')}** | "
+                           f"✏️ Prompt: **{st.session_state.execution_state.get('current_prompt', 'N/A')}**")
+                
+                # Per-model progress
+                if st.session_state.execution_state.get('model_progress'):
+                    st.markdown("#### Model Progress")
+                    model_cols = st.columns(len(st.session_state.execution_state['model_progress']))
+                    for idx, (model, progress) in enumerate(st.session_state.execution_state['model_progress'].items()):
+                        with model_cols[idx]:
+                            completed = progress.get('completed', 0)
+                            total = progress.get('total', 1)
+                            pct = completed / total if total > 0 else 0
+                            st.metric(model, f"{completed}/{total}")
+                            st.progress(pct)
+            else:
+                st.progress(0, text="Initializing survey execution...")
         
         # Set API keys from session state to environment variables temporarily
         import os
@@ -538,9 +665,72 @@ def show_execute_page():
             else:
                 status_text.text(f"Executing {len(tasks)} tasks...")
                 
-                # Run the async survey
+                # Run the async survey with progress tracking
+                async def run_with_progress():
+                    """Custom run function that updates progress"""
+                    from backend.core.processors import process_tasks_in_chunks, apply_reverse_score
+                    from backend.utils.cost_tracking import cost_tracker
+                    
+                    # Build tasks
+                    tasks = pipeline.build_tasks()
+                    st.session_state.execution_state['total_tasks'] = len(tasks)
+                    
+                    # Initialize model progress
+                    model_counts = {}
+                    for task in tasks:
+                        model = task['model_name']
+                        model_counts[model] = model_counts.get(model, 0) + 1
+                    
+                    for model, count in model_counts.items():
+                        st.session_state.execution_state['model_progress'][model] = {
+                            'total': count,
+                            'completed': 0
+                        }
+                    
+                    # Process with custom callback
+                    results = []
+                    completed = 0
+                    
+                    # Process in smaller chunks for more frequent updates
+                    chunk_size = 5
+                    for i in range(0, len(tasks), chunk_size):
+                        chunk = tasks[i:i+chunk_size]
+                        
+                        # Update current task info
+                        if chunk:
+                            st.session_state.execution_state['current_model'] = chunk[0]['model_name']
+                            st.session_state.execution_state['current_scale'] = chunk[0]['scale_name']
+                            st.session_state.execution_state['current_prompt'] = chunk[0]['prompt_style']
+                        
+                        # Process chunk
+                        chunk_results = await process_tasks_in_chunks(chunk, chunk_size=chunk_size)
+                        results.extend(chunk_results)
+                        
+                        # Update progress
+                        completed += len(chunk)
+                        st.session_state.execution_state['completed_tasks'] = completed
+                        
+                        # Update cost estimate (rough calculation)
+                        st.session_state.execution_state['current_cost'] = completed * 0.001  # Rough estimate
+                        
+                        # Update model progress
+                        for task in chunk:
+                            model = task['model_name']
+                            if model in st.session_state.execution_state['model_progress']:
+                                st.session_state.execution_state['model_progress'][model]['completed'] += 1
+                    
+                    # Build DataFrame
+                    df_results = pd.DataFrame(results)
+                    df_results["scored_value"] = df_results.apply(lambda row: apply_reverse_score(row), axis=1)
+                    
+                    # Save results
+                    output_path = pipeline.output_dir / "unified_responses.csv"
+                    df_results.to_csv(output_path, index=False)
+                    
+                    return df_results
+                
                 try:
-                    results_df = asyncio.run(pipeline.run_survey())
+                    results_df = asyncio.run(run_with_progress())
                 except Exception as run_error:
                     st.error(f"❌ Pipeline execution failed: {str(run_error)}")
                     st.exception(run_error)

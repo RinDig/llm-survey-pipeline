@@ -6,8 +6,10 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-# Add backend to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Ensure current directory is in path for imports
+current_dir = Path(__file__).parent.absolute()
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
 
 # Import components
 from frontend.components.api_key_manager import render_api_key_manager

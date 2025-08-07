@@ -227,23 +227,48 @@ def render_integrated_executor():
         
         if status == 'idle':
             executor.render_pre_execution(config)
-            
-            # Handle start button click
-            if st.session_state.execution_state['status'] == 'running':
-                # Run the survey asynchronously
-                pipeline = st.session_state['pipeline']
-                with st.spinner("Initializing survey execution..."):
-                    try:
-                        # Run the async execution
-                        results = asyncio.run(executor.execute_survey_async(pipeline, config))
-                        st.session_state.execution_state['results'] = results
-                        st.session_state.execution_state['status'] = 'completed'
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Execution failed: {str(e)}")
-                        st.session_state.execution_state['status'] = 'error'
         
-        elif status in ['running', 'paused']:
+        elif status == 'running':
+            # Check if we need to start the execution
+            if 'execution_started' not in st.session_state:
+                st.session_state.execution_started = True
+                
+                # Run the survey in a separate thread to not block UI
+                pipeline = st.session_state['pipeline']
+                
+                # Build tasks first to verify we have work to do
+                tasks = pipeline.build_tasks()
+                st.session_state.execution_state['total_tasks'] = len(tasks)
+                
+                if len(tasks) == 0:
+                    st.error("No tasks to execute! Check your configuration.")
+                    st.write("Debug Info:")
+                    st.write(f"Models: {pipeline.models_to_run}")
+                    st.write(f"Scales: {pipeline.scales_to_run}")
+                    st.write(f"Prompts: {pipeline.prompt_styles_to_run}")
+                    st.write(f"Runs: {pipeline.num_calls_test}")
+                    st.session_state.execution_state['status'] = 'error'
+                    st.rerun()
+                else:
+                    # Start async execution
+                    with st.spinner(f"Initializing {len(tasks)} tasks..."):
+                        try:
+                            # Run the async execution
+                            results = asyncio.run(executor.execute_survey_async(pipeline, config))
+                            st.session_state.execution_state['results'] = results
+                            st.session_state.execution_state['status'] = 'completed'
+                            del st.session_state.execution_started
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Execution failed: {str(e)}")
+                            st.session_state.execution_state['status'] = 'error'
+                            if 'execution_started' in st.session_state:
+                                del st.session_state.execution_started
+            else:
+                # Show progress while execution is running
+                executor.render_execution_progress()
+        
+        elif status == 'paused':
             executor.render_execution_progress()
         
         elif status == 'completed':

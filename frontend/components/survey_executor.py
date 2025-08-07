@@ -594,6 +594,35 @@ class SurveyExecutor:
             st.session_state.execution_state['status'] = 'completed'
             st.session_state.execution_state['end_time'] = datetime.now()
             
+            # Save results to storage system
+            try:
+                from backend.storage.json_handler import StorageManager
+                storage = StorageManager()
+                
+                # Prepare metadata
+                user_metadata = {
+                    'experiment_name': config.get('experiment_name', 'Survey Run'),
+                    'tags': config.get('tags', []),
+                    'researcher_id': config.get('researcher_id', 'unknown')
+                }
+                
+                # Prepare costs
+                costs = {
+                    'total': st.session_state.execution_state.get('cost_accumulator', 0),
+                    'token_usage': st.session_state.execution_state.get('token_usage', {})
+                }
+                
+                # Save to storage
+                run_id = storage.save_from_pipeline(
+                    df_results,
+                    config,
+                    user_metadata=user_metadata
+                )
+                st.session_state.execution_state['run_id'] = run_id
+                logger.info(f"Results saved with run_id: {run_id}")
+            except Exception as e:
+                logger.error(f"Failed to save results to storage: {str(e)}")
+            
             return df_results
             
         except Exception as e:

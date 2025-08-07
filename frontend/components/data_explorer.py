@@ -24,7 +24,9 @@ class DataExplorer:
     
     def __init__(self):
         """Initialize the data explorer with default settings"""
-        self.data_dir = Path("data/survey_runs")
+        # Import storage manager to access saved results
+        from backend.storage.json_handler import StorageManager
+        self.storage = StorageManager()
         self.initialize_session_state()
         
     def initialize_session_state(self):
@@ -1951,23 +1953,22 @@ class DataExplorer:
         """Load metadata for all available survey runs"""
         runs = {}
         
-        if not self.data_dir.exists():
-            return runs
-            
-        for run_file in self.data_dir.glob("*.json"):
-            try:
-                with open(run_file, 'r') as f:
-                    run_data = json.load(f)
-                    run_id = run_file.stem
-                    runs[run_id] = {
-                        'id': run_id,
-                        'timestamp': run_data.get('timestamp', ''),
-                        'config': run_data.get('config', {}),
-                        'summary': run_data.get('summary', {}),
-                        'file_path': str(run_file)
-                    }
-            except Exception as e:
-                st.warning(f"Error loading run {run_file.name}: {str(e)}")
+        # Get all runs from storage manager
+        all_runs = self.storage.get_all_runs()
+        
+        for run in all_runs:
+            run_id = run['run_id']
+            runs[run_id] = {
+                'id': run_id,
+                'timestamp': run.get('timestamp', ''),
+                'config': {
+                    'models': run['summary'].get('models_used', []),
+                    'scales': run['summary'].get('scales_used', []),
+                    'prompts': run['summary'].get('prompts_used', [])
+                },
+                'summary': run.get('summary', {}),
+                'file_path': run.get('file_path', '')
+            }
                 
         return runs
         
@@ -2031,15 +2032,13 @@ class DataExplorer:
         all_data = []
         
         for run_id in run_ids:
-            run_file = self.data_dir / f"{run_id}.json"
-            
-            if run_file.exists():
-                try:
-                    with open(run_file, 'r') as f:
-                        run_data = json.load(f)
-                        
-                    # Extract responses
-                    responses = run_data.get('responses', [])
+            try:
+                # Load run data from storage manager
+                run_data = self.storage.storage.load_survey_results(run_id)
+                
+                if run_data:
+                    # Extract responses (results)
+                    responses = run_data.get('results', [])
                     
                     for response in responses:
                         # Add run metadata
@@ -2047,8 +2046,8 @@ class DataExplorer:
                         response['timestamp'] = run_data.get('timestamp', '')
                         all_data.append(response)
                         
-                except Exception as e:
-                    st.error(f"Error loading run {run_id}: {str(e)}")
+            except Exception as e:
+                st.error(f"Error loading run {run_id}: {str(e)}")
                     
         if all_data:
             df = pd.DataFrame(all_data)

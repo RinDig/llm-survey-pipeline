@@ -8,10 +8,10 @@ from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 from llamaapi import LlamaAPI
 
-from llm_survey_pipeline.config import MODEL_CONFIG, prompt_templates
-from llm_survey_pipeline.models import SurveyAnswer, validate_scale
-from llm_survey_pipeline.utils.cost_tracking import cost_tracker
-from llm_survey_pipeline.core.parsers import safe_parse_survey_answer
+from backend.config import MODEL_CONFIG, prompt_templates
+from backend.models import SurveyAnswer, validate_scale
+from backend.utils.cost_tracking import cost_tracker
+from backend.core.parsers import safe_parse_survey_answer
 
 logger = logging.getLogger(__name__)
 

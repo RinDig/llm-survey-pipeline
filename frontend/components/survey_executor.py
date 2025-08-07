@@ -612,8 +612,8 @@ class SurveyExecutor:
         This is a modified version of process_tasks_in_chunks that includes callbacks.
         """
         # Import necessary modules
-        from llm_survey_pipeline.core.api_clients import call_model_api
-        from llm_survey_pipeline.utils.cost_tracking import cost_tracker
+        from backend.core.api_clients import call_model_api
+        from backend.utils.cost_tracking import cost_tracker
         
         results = []
         chunk_size = 5

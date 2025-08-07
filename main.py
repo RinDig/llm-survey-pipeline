@@ -5,9 +5,10 @@ import logging
 import os
 from pathlib import Path
 
-from llm_survey_pipeline.config import all_questions, all_scales
-from llm_survey_pipeline.core import process_tasks_in_chunks, apply_reverse_score
-from llm_survey_pipeline.utils import cost_tracker, save_refusal_responses, calculate_mfq_scores
+from backend.config.scales import all_questions, all_scales
+from backend.core.processors import process_tasks_in_chunks, apply_reverse_score
+from backend.utils.cost_tracking import cost_tracker
+from backend.utils.analysis import save_refusal_responses, calculate_mfq_scores
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

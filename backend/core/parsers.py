@@ -3,7 +3,7 @@ import re
 import json
 import logging
 from typing import Optional, List
-from llm_survey_pipeline.models import SurveyAnswer
+from backend.models import SurveyAnswer
 
 logger = logging.getLogger(__name__)
 

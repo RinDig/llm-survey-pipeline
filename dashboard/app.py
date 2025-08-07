@@ -13,8 +13,8 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from llm_survey_pipeline.config import MODEL_CONFIG, prompt_templates, all_scales, MFQ_FOUNDATIONS
-from llm_survey_pipeline.main import SurveyPipeline
+from backend.config import MODEL_CONFIG, prompt_templates, all_scales, MFQ_FOUNDATIONS
+from main import SurveyPipeline
 
 
 def create_app():

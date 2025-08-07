@@ -16,8 +16,10 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from llm_survey_pipeline.config import MODEL_CONFIG, prompt_templates, all_scales, all_questions
-from llm_survey_pipeline.main import SurveyPipeline
+from backend.config.models import MODEL_CONFIG
+from backend.config.prompts import prompt_templates
+from backend.config.scales import all_scales, all_questions
+from main import SurveyPipeline
 from frontend.components.survey_executor import SurveyExecutor, render_survey_executor
 
 

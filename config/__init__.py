@@ -1,7 +1,7 @@
 """Configuration module for LLM Survey Pipeline"""
-from llm_survey_pipeline.config.models import MODEL_CONFIG
-from llm_survey_pipeline.config.prompts import prompt_templates
-from llm_survey_pipeline.config.scales import (
+from backend.config.models import MODEL_CONFIG
+from backend.config.prompts import prompt_templates
+from backend.config.scales import (
     rwa_questions,
     rwa2_questions,
     lwa_questions,

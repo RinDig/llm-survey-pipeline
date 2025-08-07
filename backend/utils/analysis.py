@@ -1,6 +1,6 @@
 """Analysis utilities for LLM Survey Pipeline"""
 import pandas as pd
-from llm_survey_pipeline.config import MFQ_FOUNDATIONS
+from backend.config import MFQ_FOUNDATIONS
 
 
 def save_refusal_responses(df, output_file="refusal_responses.csv"):

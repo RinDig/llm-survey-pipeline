@@ -5,8 +5,8 @@ import pandas as pd
 from typing import List, Dict
 from tqdm import tqdm
 
-from llm_survey_pipeline.core.api_clients import call_model_api
-from llm_survey_pipeline.utils.cost_tracking import cost_tracker
+from backend.core.api_clients import call_model_api
+from backend.utils.cost_tracking import cost_tracker
 
 logger = logging.getLogger(__name__)
 

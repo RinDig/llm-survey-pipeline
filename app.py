@@ -70,6 +70,8 @@ def initialize_session_state():
         st.session_state.survey_results = None
     if 'current_step' not in st.session_state:
         st.session_state.current_step = 1
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "🏠 Home"
 
 def main():
     """Main application"""
@@ -148,7 +150,8 @@ def show_home_page():
         """)
         
         if st.button("Get Started →", type="primary", use_container_width=True):
-            st.switch_page("pages/setup.py")
+            st.session_state.current_page = "🔑 Setup"
+            st.rerun()
     
     with col2:
         st.markdown("### 📊 Platform Statistics")
@@ -191,7 +194,8 @@ def show_setup_page():
         st.success(f"✅ {len(api_keys)} API keys configured")
         
         if st.button("Continue to Survey Configuration →", type="primary"):
-            st.switch_page("pages/configure.py")
+            st.session_state.current_page = "📝 Configure Survey"
+            st.rerun()
 
 def show_configure_page():
     """Configuration page for survey setup"""
@@ -222,7 +226,8 @@ def show_configure_page():
             if not available_models:
                 st.warning("No API keys configured. Please setup API keys first.")
                 if st.button("Go to Setup"):
-                    st.switch_page("pages/setup.py")
+                    st.session_state.current_page = "🔑 Setup"
+            st.rerun()
             else:
                 selected_models = st.multiselect(
                     "Select models to test",
@@ -322,7 +327,8 @@ def show_configure_page():
     with col2:
         if st.button("🚀 Proceed to Execution", type="primary", use_container_width=True):
             if validate_configuration():
-                st.switch_page("pages/execute.py")
+                st.session_state.current_page = "🚀 Execute"
+                st.rerun()
             else:
                 st.error("Please complete the configuration")
 
@@ -343,7 +349,8 @@ def show_results_page():
     if not recent_runs:
         st.info("No survey results available yet. Run a survey first!")
         if st.button("Run a Survey"):
-            st.switch_page("pages/execute.py")
+            st.session_state.current_page = "🚀 Execute"
+            st.rerun()
         return
     
     # Run selector

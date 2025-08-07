@@ -58,6 +58,17 @@ Please provide your response in JSON format:
         # 1) OpenAI => AsyncOpenAI usage
         # ------------------------------------------------------------------
         if model_name == "OpenAI":
+            # Validate config has required fields
+            if "api_key" not in config:
+                logger.error(f"OpenAI config missing api_key")
+                return None, "Error: OpenAI API key not configured"
+            if "model" not in config:
+                logger.error(f"OpenAI config missing model")
+                return None, "Error: OpenAI model not configured"
+            if not config["api_key"]:
+                logger.error(f"OpenAI API key is empty")
+                return None, "Error: OpenAI API key is empty"
+                
             client = AsyncOpenAI(api_key=config["api_key"])
             response = await client.chat.completions.create(
                 model=config["model"],
@@ -69,7 +80,14 @@ Please provide your response in JSON format:
                 cost_tracker[model_name] += (
                     response.usage.prompt_tokens + response.usage.completion_tokens
                 )
-            raw_text = response.choices[0].message.content
+            
+            # Safely extract response text
+            if response and hasattr(response, 'choices') and len(response.choices) > 0:
+                raw_text = response.choices[0].message.content
+            else:
+                logger.error(f"OpenAI response missing expected structure: {response}")
+                return None, "Error: Invalid response structure from OpenAI"
+                
             parsed = safe_parse_survey_answer(raw_text, scale_range)
             return parsed, raw_text
 
@@ -77,6 +95,20 @@ Please provide your response in JSON format:
         # 2) Grok => same AsyncOpenAI approach but with base_url
         # ------------------------------------------------------------------
         elif model_name == "Grok":
+            # Validate config has required fields
+            if "api_key" not in config:
+                logger.error(f"Grok config missing api_key")
+                return None, "Error: Grok API key not configured"
+            if "model" not in config:
+                logger.error(f"Grok config missing model")
+                return None, "Error: Grok model not configured"
+            if "base_url" not in config:
+                logger.error(f"Grok config missing base_url")
+                return None, "Error: Grok base_url not configured"
+            if not config["api_key"]:
+                logger.error(f"Grok API key is empty")
+                return None, "Error: Grok API key is empty"
+                
             base_url = config["base_url"]
             client = AsyncOpenAI(api_key=config["api_key"], base_url=base_url)
             response = await client.chat.completions.create(
@@ -89,7 +121,14 @@ Please provide your response in JSON format:
                 cost_tracker[model_name] += (
                     response.usage.prompt_tokens + response.usage.completion_tokens
                 )
-            raw_text = response.choices[0].message.content
+            
+            # Safely extract response text
+            if response and hasattr(response, 'choices') and len(response.choices) > 0:
+                raw_text = response.choices[0].message.content
+            else:
+                logger.error(f"Grok response missing expected structure: {response}")
+                return None, "Error: Invalid response structure from Grok"
+                
             parsed = safe_parse_survey_answer(raw_text, scale_range)
             return parsed, raw_text
         

@@ -220,10 +220,18 @@ def render_integrated_executor():
         if 'executor' not in st.session_state:
             st.session_state['executor'] = SurveyExecutor()
         
+        # Ensure execution_state exists
+        if 'execution_state' not in st.session_state:
+            st.session_state['executor'].initialize_session_state()
+        
         executor = st.session_state['executor']
         
         # Handle execution based on status
         status = st.session_state.execution_state['status']
+        
+        # Debug: Show current status
+        st.sidebar.write(f"Current Status: {status}")
+        st.sidebar.write(f"Execution State Keys: {list(st.session_state.execution_state.keys())}")
         
         if status == 'idle':
             executor.render_pre_execution(config)
@@ -248,22 +256,43 @@ def render_integrated_executor():
                     st.write(f"Prompts: {pipeline.prompt_styles_to_run}")
                     st.write(f"Runs: {pipeline.num_calls_test}")
                     st.session_state.execution_state['status'] = 'error'
+                    if 'execution_started' in st.session_state:
+                        del st.session_state.execution_started
                     st.rerun()
                 else:
-                    # Start async execution
-                    with st.spinner(f"Initializing {len(tasks)} tasks..."):
-                        try:
-                            # Run the async execution
-                            results = asyncio.run(executor.execute_survey_async(pipeline, config))
-                            st.session_state.execution_state['results'] = results
-                            st.session_state.execution_state['status'] = 'completed'
+                    # Show task count for debugging
+                    st.info(f"Starting execution of {len(tasks)} tasks...")
+                    st.write(f"Configuration: {len(pipeline.models_to_run)} models × {len(pipeline.scales_to_run)} scales × {len(pipeline.prompt_styles_to_run)} prompts × {pipeline.num_calls_test} runs")
+                    
+                    # Use a progress bar for visual feedback
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    try:
+                        # Run the pipeline's own run_survey method which handles everything
+                        status_text.text("Executing survey pipeline...")
+                        results_df = asyncio.run(pipeline.run_survey())
+                        
+                        # Store results
+                        st.session_state.execution_state['results'] = results_df
+                        st.session_state.execution_state['status'] = 'completed'
+                        st.session_state.execution_state['completed_tasks'] = len(tasks)
+                        
+                        # Clear the execution flag
+                        if 'execution_started' in st.session_state:
                             del st.session_state.execution_started
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Execution failed: {str(e)}")
-                            st.session_state.execution_state['status'] = 'error'
-                            if 'execution_started' in st.session_state:
-                                del st.session_state.execution_started
+                        
+                        progress_bar.progress(100)
+                        status_text.text("✅ Survey complete!")
+                        st.success(f"Successfully completed {len(results_df)} responses")
+                        st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"Execution failed: {str(e)}")
+                        st.exception(e)  # Show full traceback
+                        st.session_state.execution_state['status'] = 'error'
+                        if 'execution_started' in st.session_state:
+                            del st.session_state.execution_started
             else:
                 # Show progress while execution is running
                 executor.render_execution_progress()

@@ -489,6 +489,29 @@ def show_execute_page():
         st.markdown("---")
         st.subheader("🔄 Executing Survey...")
         
+        # Set API keys from session state to environment variables temporarily
+        import os
+        original_env = {}
+        
+        # Store original values and set new ones from session state
+        api_keys = st.session_state.get('api_keys', {})
+        for key, value in api_keys.items():
+            original_env[key] = os.environ.get(key)
+            os.environ[key] = value
+        
+        # Also update the MODEL_CONFIG with the session state keys
+        from backend.config.models import MODEL_CONFIG
+        if api_keys.get("OPENAI_API_KEY"):
+            MODEL_CONFIG["OpenAI"]["api_key"] = api_keys["OPENAI_API_KEY"]
+        if api_keys.get("ANTHROPIC_API_KEY"):
+            MODEL_CONFIG["Claude"]["api_key"] = api_keys["ANTHROPIC_API_KEY"]
+        if api_keys.get("LLAMA_API_KEY"):
+            MODEL_CONFIG["Llama"]["api_key"] = api_keys["LLAMA_API_KEY"]
+        if api_keys.get("XAI_API_KEY"):
+            MODEL_CONFIG["Grok"]["api_key"] = api_keys["XAI_API_KEY"]
+        if api_keys.get("DEEPSEEK_API_KEY"):
+            MODEL_CONFIG["DeepSeek"]["api_key"] = api_keys["DEEPSEEK_API_KEY"]
+        
         # Create pipeline
         pipeline = SurveyPipeline(
             scales_to_run=config.get('scales', []),
@@ -520,6 +543,12 @@ def show_execute_page():
                     st.error(f"❌ Pipeline execution failed: {str(run_error)}")
                     st.exception(run_error)
                     st.session_state.execution_state['status'] = 'error'
+                    # Restore original environment
+                    for key, value in original_env.items():
+                        if value is None:
+                            os.environ.pop(key, None)
+                        else:
+                            os.environ[key] = value
                     return
                 
                 # Update state
@@ -537,6 +566,14 @@ def show_execute_page():
                 run_id = storage.save_from_pipeline(results_df, config)
                 
                 st.success(f"✅ Survey completed! {len(results_df)} responses collected. Run ID: {run_id}")
+                
+                # Restore original environment
+                for key, value in original_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+                
                 st.rerun()
                 
         except Exception as e:

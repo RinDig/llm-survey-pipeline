@@ -227,7 +227,7 @@ def show_configure_page():
                 st.warning("No API keys configured. Please setup API keys first.")
                 if st.button("Go to Setup"):
                     st.session_state.current_page = "🔑 Setup"
-            st.rerun()
+                    st.rerun()
             else:
                 selected_models = st.multiselect(
                     "Select models to test",

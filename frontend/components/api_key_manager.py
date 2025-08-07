@@ -250,14 +250,16 @@ class APIKeyManager:
                     use_container_width=True,
                     type="primary" if key_input else "secondary"
                 ):
-                    return provider, key_input
+                    # Store test request in session state instead of returning
+                    if 'pending_tests' not in st.session_state:
+                        st.session_state.pending_tests = []
+                    st.session_state.pending_tests.append((provider, key_input))
+                    st.rerun()
             
             # Update session state if key changed
             if key_input != current_key:
                 st.session_state.api_keys[config['env_key']] = key_input
                 st.session_state.api_key_validation[provider] = False
-        
-        return None, None
     
     def render_bulk_actions(self):
         """Render bulk action buttons"""
@@ -312,34 +314,25 @@ class APIKeyManager:
         # Provider inputs in a 2-column layout
         st.subheader("Provider Configuration")
         
-        # Track test requests
-        test_requests = []
+        # Get pending test requests from session state
+        test_requests = st.session_state.get('pending_tests', [])
+        # Clear pending tests after retrieving them
+        if 'pending_tests' in st.session_state:
+            del st.session_state.pending_tests
         
         # First row: OpenAI and Anthropic
         col1, col2 = st.columns(2)
-        test_req = self.render_provider_input("OpenAI", col1)
-        if test_req[0]:
-            test_requests.append(test_req)
-        
-        test_req = self.render_provider_input("Anthropic", col2)
-        if test_req[0]:
-            test_requests.append(test_req)
+        self.render_provider_input("OpenAI", col1)
+        self.render_provider_input("Anthropic", col2)
         
         # Second row: Llama and Grok
         col1, col2 = st.columns(2)
-        test_req = self.render_provider_input("Llama", col1)
-        if test_req[0]:
-            test_requests.append(test_req)
-        
-        test_req = self.render_provider_input("Grok", col2)
-        if test_req[0]:
-            test_requests.append(test_req)
+        self.render_provider_input("Llama", col1)
+        self.render_provider_input("Grok", col2)
         
         # Third row: DeepSeek (single column)
         col1, _ = st.columns(2)
-        test_req = self.render_provider_input("DeepSeek", col1)
-        if test_req[0]:
-            test_requests.append(test_req)
+        self.render_provider_input("DeepSeek", col1)
         
         st.divider()
         

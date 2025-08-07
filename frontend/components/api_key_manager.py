@@ -360,12 +360,14 @@ class APIKeyManager:
                         )
                         loop.close()
                         
-                        # Update validation status
+                        # Update validation status AND ensure key is stored
                         st.session_state.api_key_validation[provider] = success
                         st.session_state.last_validation_time[provider] = datetime.now()
                         
-                        # Show result
+                        # Ensure the API key is stored with correct env_key
                         if success:
+                            config = self.PROVIDERS[provider]
+                            st.session_state.api_keys[config['env_key']] = api_key
                             st.success(f"✅ {provider}: {message}")
                         else:
                             st.error(f"❌ {provider}: {message}")
@@ -390,6 +392,9 @@ class APIKeyManager:
                             
                             st.session_state.api_key_validation[provider] = success
                             st.session_state.last_validation_time[provider] = datetime.now()
+                            # Ensure the key is stored with correct env_key if successful
+                            if success:
+                                st.session_state.api_keys[config['env_key']] = api_key
                             results.append((provider, success, message))
                         except Exception as e:
                             results.append((provider, False, f"Error: {str(e)[:50]}"))

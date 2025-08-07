@@ -406,8 +406,27 @@ def show_execute_page():
     """Execution page for running surveys"""
     st.markdown("## 🚀 Survey Execution")
     
+    # Check if configuration is ready
+    if not st.session_state.get('survey_config', {}).get('models'):
+        st.warning("⚠️ No survey configuration found!")
+        st.info("👈 **Please select '📝 Configure Survey' from the navigation menu to set up your survey first**")
+        return
+    
+    # Prepare configuration for executor
+    from backend.config.scales import all_questions
+    
+    config = {
+        'models': st.session_state.survey_config.get('models', []),
+        'scales': st.session_state.survey_config.get('scales', []),
+        'prompts': list(st.session_state.selected_prompts.keys()) if st.session_state.selected_prompts else ['minimal'],
+        'questions': [q for q in all_questions if q["scale_name"] in st.session_state.survey_config.get('scales', [])],
+        'runs': st.session_state.survey_config.get('num_runs', 1),
+        'temperature': st.session_state.survey_config.get('temperature', 0.0),
+        'api_keys': st.session_state.api_keys
+    }
+    
     executor = SurveyExecutor()
-    executor.render()
+    executor.render(config)
 
 def show_results_page():
     """Results page for viewing completed surveys"""

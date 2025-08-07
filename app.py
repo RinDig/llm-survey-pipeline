@@ -412,21 +412,9 @@ def show_execute_page():
         st.info("👈 **Please select '📝 Configure Survey' from the navigation menu to set up your survey first**")
         return
     
-    # Prepare configuration for executor
-    from backend.config.scales import all_questions
-    
-    config = {
-        'models': st.session_state.survey_config.get('models', []),
-        'scales': st.session_state.survey_config.get('scales', []),
-        'prompts': list(st.session_state.selected_prompts.keys()) if st.session_state.selected_prompts else ['minimal'],
-        'questions': [q for q in all_questions if q["scale_name"] in st.session_state.survey_config.get('scales', [])],
-        'runs': st.session_state.survey_config.get('num_runs', 1),
-        'temperature': st.session_state.survey_config.get('temperature', 0.0),
-        'api_keys': st.session_state.api_keys
-    }
-    
-    executor = SurveyExecutor()
-    executor.render(config)
+    # Use the integrated executor which handles actual execution
+    from frontend.components.survey_executor_integration import render_integrated_executor
+    render_integrated_executor()
 
 def show_results_page():
     """Results page for viewing completed surveys"""

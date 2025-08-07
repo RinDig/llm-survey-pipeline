@@ -181,8 +181,20 @@ def render_integrated_executor():
     if 'survey_config' in st.session_state:
         st.markdown("---")
         
-        # Add configuration summary
+        # Get the configuration
         config = st.session_state['survey_config']
+        
+        # Ensure prompts are properly set from selected_prompts
+        if 'selected_prompts' in st.session_state and st.session_state.selected_prompts:
+            config['prompts'] = list(st.session_state.selected_prompts.keys())
+        elif 'prompts' not in config or not config['prompts']:
+            config['prompts'] = ['minimal']
+        
+        # Ensure pipeline instance exists
+        if 'pipeline' not in st.session_state:
+            st.session_state['pipeline'] = create_pipeline_instance(config)
+        
+        # Add configuration summary
         with st.expander("📋 Current Configuration", expanded=False):
             col1, col2, col3 = st.columns(3)
             with col1:

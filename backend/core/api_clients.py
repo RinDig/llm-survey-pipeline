@@ -29,7 +29,18 @@ async def call_model(
     """
     validate_scale(scale_range)
     
+    # Check if model exists in config
+    if model_name not in MODEL_CONFIG:
+        logger.error(f"Model {model_name} not found in MODEL_CONFIG")
+        return None, f"Error: Model {model_name} not configured"
+    
     config = MODEL_CONFIG[model_name]
+    
+    # Check if prompt style exists
+    if prompt_style_key not in prompt_templates:
+        logger.error(f"Prompt style {prompt_style_key} not found in prompt_templates")
+        return None, f"Error: Prompt style {prompt_style_key} not configured"
+    
     style_prompt = prompt_templates[prompt_style_key]
     scale_str = f"(Scale from {scale_range[0]} to {scale_range[1]})"
 
@@ -151,6 +162,9 @@ Please provide your response in JSON format:
         else:
             return None, f"Error: Unknown model {model_name}"
 
+    except KeyError as e:
+        logger.error(f"KeyError in {model_name} API call: {str(e)}")
+        return None, f"Configuration error: Missing key {str(e)}"
     except Exception as e:
         logger.error(f"Error calling {model_name}: {str(e)}")
         raise  # Let retry handle it

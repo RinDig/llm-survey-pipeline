@@ -400,6 +400,14 @@ class StorageManager:
         all_runs = self.storage.get_all_runs()
         return all_runs[:limit]
     
+    def get_all_runs(self) -> List[Dict]:
+        """Get all run summaries
+        
+        Returns:
+            List of all run summaries
+        """
+        return self.storage.get_all_runs()
+    
     def search_by_model(self, model_name: str) -> List[Dict]:
         """Search for runs using a specific model
         

@@ -52,7 +52,7 @@ llm_survey_pipeline/
 
 ### Option 1: Use the Live Web App (Recommended)
 
-1. Visit [https://llm-survey-pipeline.streamlit.app](https://llm-survey-pipeline.streamlit.app)
+1. Visit [(https://llm-survey-pipeline-wwfz4ksugwzfssnzslviyk.streamlit.app/)]
 2. Enter your API keys in the Setup page
 3. Configure your survey parameters
 4. Execute and download results

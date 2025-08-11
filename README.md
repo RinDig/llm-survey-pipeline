@@ -1,6 +1,6 @@
 # 🔬 LLM Survey Pipeline
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]([https://llm-survey-pipeline.streamlit.app](https://llm-survey-pipeline-wwfz4ksugwzfssnzslviyk.streamlit.app/))
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://llm-survey-pipeline-wwfz4ksugwzfssnzslviyk.streamlit.app/))
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Live App**: [https://llm-survey-pipeline.streamlit.app](https://llm-survey-pipeline.streamlit.app)

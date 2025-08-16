@@ -5,6 +5,8 @@
 
 **Live App**: (https://llm-survey-pipeline-wwfz4ksugwzfssnzslviyk.streamlit.app/)
 
+**For teaching purposes** I have included a single file, Juypter Notebook file with the full functionality of the entire pipline, simply download survey_aggregator.ipynb
+
 ## Overview
 
 A comprehensive research platform for conducting psychological and political surveys with Large Language Models (LLMs). This tool systematically tests model responses across established psychological scales under different prompting conditions, providing researchers with powerful tools to analyze potential biases, personality traits, or cognitive styles embedded in these models.
